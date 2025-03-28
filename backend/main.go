@@ -1,11 +1,13 @@
 package main
 
 import (
-	"net/http"
-	"github.com/gin-gonic/gin"
 	"database/sql"
-	_ "github.com/lib/pq"
+	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 type Match struct {
@@ -22,21 +24,27 @@ var db *sql.DB
 func main() {
 
 	
-	connStr := "user=postgres dbname=laliga password=perrogato32 host=db sslmode=disable"
-
-	var err error
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-
-	// Verificar conexión a la base de datos
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
+	connStr := "user=postgres dbname=laliga password=postgres host=db sslmode=disable"
+    
+    var db *sql.DB
+    var err error
+    
+    // Agrega reintentos de conexión
+    for i := 0; i < 5; i++ {
+        db, err = sql.Open("postgres", connStr)
+        if err == nil {
+            err = db.Ping()
+            if err == nil {
+                break
+            }
+        }
+        time.Sleep(5 * time.Second) // Espera 5 segundos entre intentos
+    }
+    
+    if err != nil {
+        panic(err)
+    }
+    defer db.Close()
 	// Configura el router Gin
 	r := gin.Default()
 
