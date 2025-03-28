@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.8'  
 
 services:
   db:
@@ -21,6 +21,8 @@ services:
     build: ./backend
     ports:
       - "8080:8080"
+    volumes:
+      - ./frontend:/app/frontend  # Monta el directorio frontend local en el contenedor
     depends_on:
       db:
         condition: service_healthy

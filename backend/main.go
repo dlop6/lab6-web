@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,40 +12,41 @@ import (
 )
 
 type Match struct {
-	ID      string `json:"id"`
-	Team1   string `json:"team1"`
-	Team2   string `json:"team2"`
-	Score1  int    `json:"score1"`
-	Score2  int    `json:"score2"`
-	Date    string `json:"date"`
+	ID     string `json:"id"`
+	Team1  string `json:"team1"`
+	Team2  string `json:"team2"`
+	Score1 int    `json:"score1"`
+	Score2 int    `json:"score2"`
+	Date   string `json:"date"`
 }
 
 var db *sql.DB
 
 func main() {
-
-	
+	// Conexión a PostgreSQL con reintentos
 	connStr := "user=postgres dbname=laliga password=postgres host=db sslmode=disable"
-    
-    var db *sql.DB
-    var err error
-    
-    // Agrega reintentos de conexión
-    for i := 0; i < 5; i++ {
-        db, err = sql.Open("postgres", connStr)
-        if err == nil {
-            err = db.Ping()
-            if err == nil {
-                break
-            }
-        }
-        time.Sleep(5 * time.Second) // Espera 5 segundos entre intentos
-    }
-    
-    if err != nil {
-        panic(err)
-    }
-    defer db.Close()
+	var err error
+
+	// Intenta conectar varias veces
+	for i := 0; i < 5; i++ {
+		db, err = sql.Open("postgres", connStr)
+		if err == nil {
+			err = db.Ping()
+			if err == nil {
+				break
+			}
+		}
+		log.Printf("Intento de conexión %d fallido: %v", i+1, err)
+		time.Sleep(5 * time.Second)
+	}
+
+	if err != nil {
+		log.Fatal("No se pudo conectar a PostgreSQL:", err)
+	}
+	defer db.Close()
+
+	log.Println("Conexión a PostgreSQL establecida correctamente")
+
 	// Configura el router Gin
 	r := gin.Default()
 
@@ -56,15 +58,21 @@ func main() {
 	r.DELETE("/api/matches/:id", deleteMatch)
 
 	// Sirve el frontend estático
-	r.StaticFile("/", "../frontend/LaLigaTracker.html")
+	r.StaticFile("/", "./frontend/LaLigaTracker.html")
 
 	r.Run(":8080")
 }
 
 // Obtener todos los partidos
 func getMatches(c *gin.Context) {
-	rows, err := db.Query("SELECT * FROM matches")
+	if db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection not established"})
+		return
+	}
+
+	rows, err := db.Query("SELECT id, team1, team2, score1, score2, date FROM matches")
 	if err != nil {
+		log.Printf("Error en consulta: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -74,8 +82,8 @@ func getMatches(c *gin.Context) {
 	for rows.Next() {
 		var m Match
 		if err := rows.Scan(&m.ID, &m.Team1, &m.Team2, &m.Score1, &m.Score2, &m.Date); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			log.Printf("Error escaneando fila: %v", err)
+			continue
 		}
 		matches = append(matches, m)
 	}
