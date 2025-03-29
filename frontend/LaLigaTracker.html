@@ -272,35 +272,36 @@
 
     async function registerGoal() {
       const id = getPatchMatchId();
+      const team = prompt("Ingrese el equipo (team1 o team2):");
+      const goals = parseInt(prompt("Goles a añadir:"));
+      
       try {
-        const response = await fetch(`${apiBaseUrl}/matches/${id}/goals`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ /* Puedes enviar datos adicionales si es necesario */ })
-        });
-        if (!response.ok) throw new Error('Error al registrar gol');
-        alert('Gol registrado correctamente');
-        fetchMatches();
+          const response = await fetch(`${apiBaseUrl}/matches/${id}/goals`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ team, goals })
+          });
+          if (!response.ok) throw new Error(await response.text());
+          alert('Gol registrado correctamente');
+          fetchMatches();
       } catch (error) {
-        alert(error);
+          alert(error.message);
       }
-    }
+  }
 
-    async function registerYellowCard() {
-      const id = getPatchMatchId();
-      try {
+  async function registerYellowCard() {
+    const id = getPatchMatchId();
+    try {
         const response = await fetch(`${apiBaseUrl}/matches/${id}/yellowcards`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ /* Puedes enviar datos adicionales si es necesario */ })
+            method: 'PATCH'
         });
-        if (!response.ok) throw new Error('Error al registrar tarjeta amarilla');
-        alert('Tarjeta amarilla registrada correctamente');
+        if (!response.ok) throw new Error(await response.text());
+        alert('Tarjeta amarilla registrada');
         fetchMatches();
-      } catch (error) {
-        alert(error);
-      }
+    } catch (error) {
+        alert(error.message);
     }
+}
 
     async function registerRedCard() {
       const id = getPatchMatchId();
@@ -320,19 +321,21 @@
 
     async function setExtraTime() {
       const id = getPatchMatchId();
+      const minutes = parseInt(prompt("Minutos de tiempo extra:"));
+      
       try {
-        const response = await fetch(`${apiBaseUrl}/matches/${id}/extratime`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ /* Puedes enviar datos adicionales si es necesario */ })
-        });
-        if (!response.ok) throw new Error('Error al establecer tiempo extra');
-        alert('Tiempo extra establecido correctamente');
-        fetchMatches();
+          const response = await fetch(`${apiBaseUrl}/matches/${id}/extratime`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ minutes })
+          });
+          if (!response.ok) throw new Error(await response.text());
+          alert('Tiempo extra actualizado');
+          fetchMatches();
       } catch (error) {
-        alert(error);
+          alert(error.message);
       }
-    }
+  }
   </script>
 </body>
 </html>

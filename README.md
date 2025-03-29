@@ -17,4 +17,5 @@
 |----------------|-----------------------------|
 | Listar partidos | ![Listado](/ss/cargar.png)  |
 | Crear partido  | ![Creación](/ss/crear.png)  |
-| 
+| Actualizar partido  | ![Creación](/ss/update.png)  |
+| Eliminar partido  | ![Creación](/ss/delete.png)  |

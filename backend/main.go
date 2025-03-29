@@ -170,13 +170,29 @@ func updateGoals(c *gin.Context) {
 // @Success 200 {object} Match
 // @Router /api/matches/{id}/yellowcards [patch]
 func updateYellowCards(c *gin.Context) {
-	id := c.Param("id")
-	_, err := db.Exec("UPDATE matches SET yellow_cards = yellow_cards + 1 WHERE id = $1", id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Tarjeta amarilla registrada"})
+    id := c.Param("id")
+    _, err := db.Exec("UPDATE matches SET yellow_cards = yellow_cards + 1 WHERE id = $1", id)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": "Error al actualizar tarjetas amarillas",
+            "details": err.Error(),
+        })
+        return
+    }
+    
+    // Devuelve el partido actualizado
+    var match Match
+    err = db.QueryRow(
+        "SELECT id, team1, team2, score1, score2, date, yellow_cards FROM matches WHERE id = $1", 
+        id,
+    ).Scan(&match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, &match.Date, &match.YellowCards)
+    
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    
+    c.JSON(http.StatusOK, match)
 }
 
 // @Summary Registrar tarjeta roja
@@ -222,24 +238,28 @@ func updateExtraTime(c *gin.Context) {
 }
 
 
-// Obtener un partido por ID
 func getMatchByID(c *gin.Context) {
-	id := c.Param("id")
-	var match Match
+    id := c.Param("id")
+    var match Match
 
-	err := db.QueryRow("SELECT id, team1, team2, score1, score2, date FROM matches WHERE id = $1", id).Scan(
-		&match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, &match.Date)
-	
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Partido no encontrado"})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		return
-	}
-	
-	c.JSON(http.StatusOK, match)
+    err := db.QueryRow(
+        "SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches WHERE id = $1", 
+        id,
+    ).Scan(
+        &match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, 
+        &match.Date, &match.YellowCards, &match.RedCards, &match.ExtraTime,
+    )
+    
+    if err != nil {
+        if err == sql.ErrNoRows {
+            c.JSON(http.StatusNotFound, gin.H{"error": "Partido no encontrado"})
+        } else {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        }
+        return
+    }
+    
+    c.JSON(http.StatusOK, match)
 }
 
 // Crear un nuevo partido
