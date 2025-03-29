@@ -1,0 +1,6 @@
+API de La Liga Tracker
+
+Uso básico:
+- GET    /api/matches          Listar todos los partidos
+- POST   /api/matches          Crear nuevo partido (JSON: team1, team2, date)
+- PATCH  /api/matches/:id/goals Actualizar goles (JSON: team, goals)

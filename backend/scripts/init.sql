@@ -2,7 +2,12 @@ CREATE TABLE IF NOT EXISTS matches (
     ID SERIAL PRIMARY KEY,
     Team1 VARCHAR(100) NOT NULL,
     Team2 VARCHAR(100) NOT NULL,
-    Score1 INTEGER DEFAULT 0,
-    Score2 INTEGER DEFAULT 0,
-    Date DATE NOT NULL
+    Score1 INTEGER DEFAULT 0 CHECK (Score1 >= 0),
+    Score2 INTEGER DEFAULT 0 CHECK (Score2 >= 0),
+    Date DATE NOT NULL,
+    YellowCards INTEGER DEFAULT 0 CHECK (YellowCards >= 0),
+    RedCards INTEGER DEFAULT 0 CHECK (RedCards >= 0),
+    ExtraTime INTEGER DEFAULT 0 CHECK (ExtraTime BETWEEN 0 AND 30)
 );
+
+CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(Date);

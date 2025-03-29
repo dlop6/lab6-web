@@ -1,0 +1,135 @@
+basePath: /api
+definitions:
+  main.Match:
+    description: Información detallada sobre un partido de La Liga
+    properties:
+      date:
+        type: string
+      extraTime:
+        type: integer
+      id:
+        type: string
+      redCards:
+        type: integer
+      score1:
+        type: integer
+      score2:
+        type: integer
+      team1:
+        type: string
+      team2:
+        type: string
+      yellowCards:
+        type: integer
+    required:
+    - date
+    - team1
+    - team2
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API para gestión de partidos de fútbol
+  title: La Liga Tracker API
+  version: "1.0"
+paths:
+  /api/matches:
+    get:
+      description: Devuelve la lista completa de partidos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.Match'
+            type: array
+      summary: Obtener todos los partidos
+  /api/matches/{id}/extratime:
+    patch:
+      description: Establece minutos de tiempo extra
+      parameters:
+      - description: ID del partido
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Minutos de tiempo extra
+        in: body
+        name: minutes
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Match'
+      summary: Actualizar tiempo extra
+  /api/matches/{id}/goals:
+    patch:
+      description: Incrementa los goles de un equipo
+      parameters:
+      - description: ID del partido
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Equipo (team1 o team2)
+        in: body
+        name: team
+        required: true
+        schema:
+          type: string
+      - description: Goles a añadir
+        in: body
+        name: goals
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Match'
+      summary: Actualizar goles
+  /api/matches/{id}/redcards:
+    patch:
+      description: Incrementa el contador de tarjetas rojas
+      parameters:
+      - description: ID del partido
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Match'
+      summary: Registrar tarjeta roja
+  /api/matches/{id}/yellowcards:
+    patch:
+      description: Incrementa el contador de tarjetas amarillas
+      parameters:
+      - description: ID del partido
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Match'
+      summary: Registrar tarjeta amarilla
+swagger: "2.0"
