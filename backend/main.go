@@ -99,23 +99,26 @@ func main() {
 // @Success 200 {array} Match
 // @Router /api/matches [get]
 func getMatches(c *gin.Context) {
-	rows, err := db.Query("SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
+    rows, err := db.Query("SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches")
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    defer rows.Close()
 
-	var matches []Match
-	for rows.Next() {
-		var m Match
-		if err := rows.Scan(&m.ID, &m.Team1, &m.Team2, &m.Score1, &m.Score2, &m.Date, &m.YellowCards, &m.RedCards, &m.ExtraTime); err != nil {
-			log.Printf("Error escaneando fila: %v", err)
-			continue
-		}
-		matches = append(matches, m)
-	}
-	c.JSON(http.StatusOK, matches)
+    var matches []Match
+    for rows.Next() {
+        var m Match
+        if err := rows.Scan(
+            &m.ID, &m.Team1, &m.Team2, &m.Score1, &m.Score2, 
+            &m.Date, &m.YellowCards, &m.RedCards, &m.ExtraTime,
+        ); err != nil {
+            log.Printf("Error escaneando fila: %v", err)
+            continue
+        }
+        matches = append(matches, m)
+    }
+    c.JSON(http.StatusOK, matches)
 }
 
 // @Summary Actualizar goles
@@ -127,40 +130,47 @@ func getMatches(c *gin.Context) {
 // @Success 200 {object} Match
 // @Router /api/matches/{id}/goals [patch]
 func updateGoals(c *gin.Context) {
-	id := c.Param("id")
-	var update struct {
-		Team  string `json:"team" binding:"required,oneof=team1 team2"`
-		Goals int    `json:"goals" binding:"required,min=1"`
-	}
+    id := c.Param("id")
+    var update struct {
+        Team  string `json:"team" binding:"required,oneof=team1 team2"`
+        Goals int    `json:"goals" binding:"required,min=1"`
+    }
 
-	if err := c.ShouldBindJSON(&update); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    if err := c.ShouldBindJSON(&update); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	var field string
-	if update.Team == "team1" {
-		field = "score1"
-	} else {
-		field = "score2"
-	}
+    var field string
+    if update.Team == "team1" {
+        field = "score1"
+    } else {
+        field = "score2"
+    }
 
-	_, err := db.Exec(fmt.Sprintf("UPDATE matches SET %s = %s + $1 WHERE id = $2", field, field), update.Goals, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // Actualiza los goles
+    _, err := db.Exec(fmt.Sprintf("UPDATE matches SET %s = %s + $1 WHERE id = $2", field, field), update.Goals, id)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	// Devuelve el partido actualizado
-	var match Match
-	err = db.QueryRow("SELECT id, team1, team2, score1, score2, date FROM matches WHERE id = $1", id).Scan(
-		&match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, &match.Date)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // Devuelve el partido actualizado con todas las columnas
+    var match Match
+    err = db.QueryRow(
+        "SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches WHERE id = $1", 
+        id,
+    ).Scan(
+        &match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, 
+        &match.Date, &match.YellowCards, &match.RedCards, &match.ExtraTime,
+    )
+    
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	c.JSON(http.StatusOK, match)
+    c.JSON(http.StatusOK, match)
 }
 
 // @Summary Registrar tarjeta amarilla
@@ -202,13 +212,29 @@ func updateYellowCards(c *gin.Context) {
 // @Success 200 {object} Match
 // @Router /api/matches/{id}/redcards [patch]
 func updateRedCards(c *gin.Context) {
-	id := c.Param("id")
-	_, err := db.Exec("UPDATE matches SET red_cards = red_cards + 1 WHERE id = $1", id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Tarjeta roja registrada"})
+    id := c.Param("id")
+    _, err := db.Exec("UPDATE matches SET red_cards = red_cards + 1 WHERE id = $1", id)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // Devuelve el partido actualizado
+    var match Match
+    err = db.QueryRow(
+        "SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches WHERE id = $1", 
+        id,
+    ).Scan(
+        &match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, 
+        &match.Date, &match.YellowCards, &match.RedCards, &match.ExtraTime,
+    )
+    
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    
+    c.JSON(http.StatusOK, match)
 }
 
 // @Summary Actualizar tiempo extra
@@ -219,22 +245,38 @@ func updateRedCards(c *gin.Context) {
 // @Success 200 {object} Match
 // @Router /api/matches/{id}/extratime [patch]
 func updateExtraTime(c *gin.Context) {
-	id := c.Param("id")
-	var update struct {
-		Minutes int `json:"minutes" binding:"required,min=1,max=15"`
-	}
+    id := c.Param("id")
+    var update struct {
+        Minutes int `json:"minutes" binding:"required,min=1,max=15"`
+    }
 
-	if err := c.ShouldBindJSON(&update); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    if err := c.ShouldBindJSON(&update); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	_, err := db.Exec("UPDATE matches SET extra_time = $1 WHERE id = $2", update.Minutes, id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Tiempo extra actualizado"})
+    _, err := db.Exec("UPDATE matches SET extra_time = $1 WHERE id = $2", update.Minutes, id)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // Devuelve el partido actualizado
+    var match Match
+    err = db.QueryRow(
+        "SELECT id, team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time FROM matches WHERE id = $1", 
+        id,
+    ).Scan(
+        &match.ID, &match.Team1, &match.Team2, &match.Score1, &match.Score2, 
+        &match.Date, &match.YellowCards, &match.RedCards, &match.ExtraTime,
+    )
+    
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    
+    c.JSON(http.StatusOK, match)
 }
 
 
@@ -261,28 +303,35 @@ func getMatchByID(c *gin.Context) {
     
     c.JSON(http.StatusOK, match)
 }
-
-// Crear un nuevo partido
 func createMatch(c *gin.Context) {
-	var match Match
-	if err := c.ShouldBindJSON(&match); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    var match Match
+    if err := c.ShouldBindJSON(&match); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
 
-	err := db.QueryRow(
-		`INSERT INTO matches (team1, team2, score1, score2, date) 
-		VALUES ($1, $2, $3, $4, $5) 
-		RETURNING id`,
-		match.Team1, match.Team2, match.Score1, match.Score2, match.Date,
-	).Scan(&match.ID)
+    // Establece valores por defecto
+    if match.Score1 == 0 {
+        match.Score1 = 0
+    }
+    if match.Score2 == 0 {
+        match.Score2 = 0
+    }
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    err := db.QueryRow(
+        `INSERT INTO matches (team1, team2, score1, score2, date, yellow_cards, red_cards, extra_time) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        RETURNING id`,
+        match.Team1, match.Team2, match.Score1, match.Score2, match.Date, 
+        match.YellowCards, match.RedCards, match.ExtraTime,
+    ).Scan(&match.ID)
 
-	c.JSON(http.StatusCreated, match)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusCreated, match)
 }
 
 // Actualizar un partido existente
